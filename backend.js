@@ -15,25 +15,26 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html')
 })
 
-const players = {}
+const backEndPlayers = {}
 
 io.on('connection', (socket) => {
   console.log('a user connected')
   //creating a new player object witha property of whatever the socket id
-  players[socket.id] = {
+  backEndPlayers[socket.id] = {
     x: 100 * Math.random(),
-    y: 100 * Math.random()
+    y: 100 * Math.random(),
+    color: `hsl(${360 * Math.random()}, 100%, 50%)`
   }
   //broadcast everyone new player has joined
-  io.emit('updatePlayers', players)
+  io.emit('updatePlayers', backEndPlayers)
 
   socket.on('disconnect', (reason) => {
     console.log(reason)
-    delete players[socket.id]
-    io.emit('updatePlayers', players)
+    delete backEndPlayers[socket.id]
+    io.emit('updatePlayers', backEndPlayers)
   })
 
-  console.log(players)
+  console.log(backEndPlayers)
 
 });
 
