@@ -10,6 +10,7 @@ const devicePixelRatio = window.devicePixelRatio || 1
 canvas.width = innerWidth * devicePixelRatio
 canvas.height = innerHeight * devicePixelRatio
 
+
 const x = canvas.width / 2
 const y = canvas.height / 2
 
@@ -28,6 +29,37 @@ socket.on('updatePlayers', (backEndPlayers) =>{
         radius: 10,
         color: backEndPlayer.color
       })
+    } else{
+      //if a player already exists
+      if( id === socket.id){
+        frontEndPlayers[id].x = backEndPlayer.x
+        frontEndPlayers[id].y = backEndPlayer.y
+
+        const lastBackendInputIndex = playerInputs.findIndex(input => {
+
+          return backEndPlayer.sequenceNumber === input.sequenceNumber;
+        })
+
+        if(lastBackendInputIndex > -1){
+          playerInputs.splice(0, lastBackendInputIndex + 1)
+        }
+        
+        playerInputs.forEach(input => {
+          frontEndPlayers[id].x += input.dx
+          frontEndPlayers[id].y += input.dy
+        })
+      }
+      else{
+        // all other players
+
+        gsap.to(frontEndPlayers[id], {
+          x: backEndPlayer.x,
+          y: backEndPlayer.y,
+          duration: 0.01667,
+          ease: 'linear'
+        })
+      }
+      
     }
   }
   //cheack if the player is not on frontend if delted on backend
@@ -56,3 +88,93 @@ function animate() {
 }
 
 animate()
+
+const keys = {
+  w: {
+    pressed: false
+  },
+  a: {
+    pressed: false
+  },
+  s: {
+    pressed: false
+  },
+  d: {
+    pressed: false
+  },
+}
+
+const SPEED = 5
+const playerInputs = []
+let sequenceNumber = 0
+
+setInterval(() => {
+  if(keys.w.pressed){
+    sequenceNumber++
+    playerInputs.push({sequenceNumber, dx: 0, dy: -SPEED})
+    frontEndPlayers[socket.id].y -= SPEED
+    socket.emit('keydown', {keycode: 'KeyW', sequenceNumber})
+  }
+
+  if(keys.a.pressed){
+    sequenceNumber++
+    playerInputs.push({sequenceNumber, dx: -SPEED, dy: 0})
+    frontEndPlayers[socket.id].x -= SPEED
+    socket.emit('keydown', {keycode: 'KeyA', sequenceNumber})
+  }
+
+  if(keys.s.pressed){
+    sequenceNumber++
+    playerInputs.push({sequenceNumber, dx: 0, dy: SPEED})
+    frontEndPlayers[socket.id].y += SPEED
+    socket.emit('keydown', {keycode: 'KeyS', sequenceNumber})
+  }
+
+  if(keys.d.pressed){
+    sequenceNumber++
+    playerInputs.push({sequenceNumber, dx: SPEED, dy: 0})
+    frontEndPlayers[socket.id].x += SPEED
+    socket.emit('keydown', {keycode: 'KeyD', sequenceNumber})
+  }
+}, 1000/60) // ~16.67 tick rate industry standard
+
+//event listener when is key down or pressed
+window.addEventListener('keydown', (event) =>{
+  //check if player is there if not quit 
+  if(!frontEndPlayers[socket.id]) return
+
+  switch(event.code){
+    case 'KeyW':
+      keys.w.pressed = true
+      break
+    case 'KeyA':
+      keys.a.pressed = true
+      break
+    case 'KeyS':
+      keys.s.pressed = true
+      break
+    case 'KeyD':
+      keys.d.pressed = true
+      break
+  }
+})
+
+//event listener when is key released or up
+window.addEventListener('keyup', (event) => {
+  if(!frontEndPlayers[socket.id]) return
+
+  switch(event.code){
+    case 'KeyW':
+      keys.w.pressed = false
+      break
+    case 'KeyA':
+      keys.a.pressed = false
+      break
+    case 'KeyS':
+      keys.s.pressed = false
+      break
+    case 'KeyD':
+      keys.d.pressed = false
+      break
+  }
+})

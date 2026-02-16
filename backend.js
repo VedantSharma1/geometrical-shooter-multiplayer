@@ -17,14 +17,18 @@ app.get('/', (req, res) => {
 
 const backEndPlayers = {}
 
+const SPEED = 5
+
 io.on('connection', (socket) => {
   console.log('a user connected')
   //creating a new player object witha property of whatever the socket id
   backEndPlayers[socket.id] = {
     x: 100 * Math.random(),
     y: 100 * Math.random(),
-    color: `hsl(${360 * Math.random()}, 100%, 50%)`
+    color: `hsl(${360 * Math.random()}, 100%, 50%)`,
+    sequenceNumber: 0
   }
+
   //broadcast everyone new player has joined
   io.emit('updatePlayers', backEndPlayers)
 
@@ -34,9 +38,32 @@ io.on('connection', (socket) => {
     io.emit('updatePlayers', backEndPlayers)
   })
 
+  socket.on('keydown', ({keycode, sequenceNumber}) =>{
+    backEndPlayers[socket.id].sequenceNumber = sequenceNumber
+    switch(keycode){
+    case 'KeyW':
+      backEndPlayers[socket.id].y -= SPEED
+      break
+    case 'KeyA':
+      backEndPlayers[socket.id].x -= SPEED
+      break
+    case 'KeyS':
+      backEndPlayers[socket.id].y += SPEED
+      break
+    case 'KeyD':
+      backEndPlayers[socket.id].x += SPEED
+      break
+  }
+  })
+
   console.log(backEndPlayers)
 
 });
+
+//tick rate and all
+setInterval(() => {
+  io.emit('updatePlayers', backEndPlayers)
+}, 1000/60) // ~16.67 tick rate industry standard
 
 server.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
