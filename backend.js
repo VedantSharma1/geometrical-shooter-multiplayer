@@ -1,3 +1,4 @@
+
 const express = require('express')
 const app = express()
 const port = 3000
@@ -16,21 +17,55 @@ app.get('/', (req, res) => {
 })
 
 const backEndPlayers = {}
-
+const backEndProjectiles = {}
 const SPEED = 5
+const RADIUS = 10
+const PROJECTILE_RADIUS = 5
+let projectileId = 0
 
 io.on('connection', (socket) => {
   console.log('a user connected')
   //creating a new player object witha property of whatever the socket id
   backEndPlayers[socket.id] = {
-    x: 100 * Math.random(),
-    y: 100 * Math.random(),
+    x: 200 * Math.random(),
+    y: 200 * Math.random(),
     color: `hsl(${360 * Math.random()}, 100%, 50%)`,
     sequenceNumber: 0
   }
 
   //broadcast everyone new player has joined
   io.emit('updatePlayers', backEndPlayers)
+
+  socket.on('initCanvas', ({width, height, devicePixelRatio}) =>{
+    backEndPlayers[socket.id].canvas = {
+      width,
+      height,
+    }
+
+    backEndPlayers[socket.id].radius = RADIUS
+
+    if (devicePixelRatio > 1){
+      backEndPlayers[socket.id].radius = 2 * RADIUS
+    }
+    
+
+  })
+
+  socket.on('shoot', ({x, y, angle}) => {
+    projectileId++
+
+    const velocity = {
+    x: Math.cos(angle) * 5,
+    y: Math.sin(angle) * 5
+  }
+
+    backEndProjectiles[projectileId] = {
+      x,
+      y,
+      velocity,
+      playerId: socket.id
+    }
+  })
 
   socket.on('disconnect', (reason) => {
     console.log(reason)
@@ -56,14 +91,74 @@ io.on('connection', (socket) => {
   }
   })
 
-  console.log(backEndPlayers)
+  //console.log(backEndPlayers)
 
 });
 
-//tick rate and all
+//tick rate and all , backend
 setInterval(() => {
+  //update proj position
+  for (const id in backEndProjectiles){
+    backEndProjectiles[id].x += backEndProjectiles[id].velocity.x
+    backEndProjectiles[id].y += backEndProjectiles[id].velocity.y
+    
+    //garbage colection deleting projectiles
+    //improve this logic what if someone is paying on half screen and
+    //someone full screen, the projectiles just disappear for the full the
+    // full screen (he was talking about some camera controlled movement like slither)
+    // but right now you can work with some large fixed values or if you have a world
+    //you can do world bound checks
+
+    
+    // if (backEndProjectiles[id].x - PROJECTILE_RADIUS >= backEndPlayers[
+    //   backEndProjectiles[id].playerId]?.canvas?.width || 
+
+    //   backEndProjectiles[id].x + PROJECTILE_RADIUS <= 0 ||
+
+    //   backEndProjectiles[id].y - PROJECTILE_RADIUS >= backEndPlayers[
+    //   backEndProjectiles[id].playerId]?.canvas?.height || 
+
+    //   backEndProjectiles[id].y + PROJECTILE_RADIUS <= 0){
+
+    //   delete backEndProjectiles[id]
+    // }
+    
+    if (backEndProjectiles[id].x - PROJECTILE_RADIUS >= 3000 || 
+
+      backEndProjectiles[id].x + PROJECTILE_RADIUS <= 0 ||
+
+      backEndProjectiles[id].y - PROJECTILE_RADIUS >= 3000 || 
+
+      backEndProjectiles[id].y + PROJECTILE_RADIUS <= 0){
+
+      delete backEndProjectiles[id]
+      continue;
+    }
+    
+    //calculcating ditance between alllt he projectiles nad the players
+    for (const playerId in backEndPlayers){
+
+      const backEndPlayer = backEndPlayers[playerId]
+      const DISTANCE = Math.hypot(
+        backEndProjectiles[id].x - backEndPlayer.x,
+        backEndProjectiles[id].y - backEndPlayer.y)
+
+        if (DISTANCE < PROJECTILE_RADIUS + backEndPlayer.radius &&
+          backEndProjectiles[id].playerId !== playerId){
+          delete backEndProjectiles[id]
+          delete backEndPlayers[playerId]
+          break
+        }
+    }
+    
+    
+    //console.log(backEndProjectiles[id])
+
+  }
+
+  io.emit('updateProjectiles', backEndProjectiles)
   io.emit('updatePlayers', backEndPlayers)
-}, 1000/60) // ~16.67 tick rate industry standard
+}, 15) 
 
 server.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
