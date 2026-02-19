@@ -17,13 +17,7 @@ const y = canvas.height / 2
 const frontEndPlayers = {}
 const frontEndProjectiles = {}
 
-socket.on("connect", () =>{
-  socket.emit('initCanvas', {
-    width: canvas.width,
-    height: canvas.height,
-    devicePixelRatio
-  })
-})
+
 
 //const player = new Player(x, y, 10, 'white')
 
@@ -66,11 +60,11 @@ socket.on('updatePlayers', (backEndPlayers) =>{
       })
       //Updating players from the leaderboard panels
       document.querySelector('#playerLabels').innerHTML +=
-        `<div data-id="${id}" data-score="${backEndPlayer.score}">${id}: ${backEndPlayer.score} </div>`
+        `<div data-id="${id}" data-score="${backEndPlayer.username}">${id}: ${backEndPlayer.score} </div>`
     } else{
       //if a player already exists
 
-      document.querySelector(`div[data-id="${id}"]`).innerHTML = `${id}: ${backEndPlayer.score}`
+      document.querySelector(`div[data-id="${id}"]`).innerHTML = `${backEndPlayer.username}: ${backEndPlayer.score}`
 
       document.querySelector(`div[data-id="${id}"]`).setAttribute('data-score', backEndPlayer.score)
 
@@ -131,6 +125,12 @@ socket.on('updatePlayers', (backEndPlayers) =>{
 
       const divToDelete = document.querySelector(`div[data-id="${id}"]`)
       divToDelete.parentNode.removeChild(divToDelete)
+
+      //player delted belongs to us hsow us the the set name ui again
+      if (id === socket.id) {
+        document.querySelector('#usernameForm').style.display = 'block'
+      }
+
       delete frontEndPlayers[id]
     }
   }
@@ -253,3 +253,14 @@ window.addEventListener('keyup', (event) => {
       break
   }
 })
+
+document.querySelector('#usernameForm').addEventListener('submit', (event) => {
+  event.preventDefault()
+  document.querySelector('#usernameForm').style.display = 'none'
+  socket.emit('initGame', { 
+    width: canvas.width,
+    height: canvas.height,
+    devicePixelRatio,
+    username: document.querySelector('#usernameInput').value})
+})
+
