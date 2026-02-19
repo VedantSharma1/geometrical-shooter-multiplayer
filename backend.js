@@ -18,9 +18,10 @@ app.get('/', (req, res) => {
 
 const backEndPlayers = {}
 const backEndProjectiles = {}
-const SPEED = 5
+const SPEED = 3
 const RADIUS = 10
 const PROJECTILE_RADIUS = 5
+const PROJECTILE_SPEED = 10
 let projectileId = 0
 
 io.on('connection', (socket) => {
@@ -34,8 +35,8 @@ io.on('connection', (socket) => {
     projectileId++
 
     const velocity = {
-    x: Math.cos(angle) * 5,
-    y: Math.sin(angle) * 5
+    x: Math.cos(angle) * PROJECTILE_SPEED,
+    y: Math.sin(angle) * PROJECTILE_SPEED
   }
 
     backEndProjectiles[projectileId] = {
@@ -46,11 +47,11 @@ io.on('connection', (socket) => {
     }
   })
 
-  socket.on('initGame',({username, width, height, devicePixelRatio}) => {
+  socket.on('initGame',({username, width, height}) => {
     //creating a new player object witha property of whatever the socket id
     backEndPlayers[socket.id] = {
-      x: 200 * Math.random(),
-      y: 200 * Math.random(),
+      x: width * Math.random(), // random vals bw 0.1-0.7
+      y: height * (Math.random() * (0.7 - 0.1) + 0.1), //576 * Math.random()
       color: `hsl(${360 * Math.random()}, 100%, 50%)`,
       sequenceNumber: 0,
       score: 0,
@@ -63,11 +64,7 @@ io.on('connection', (socket) => {
     }
 
     backEndPlayers[socket.id].radius = RADIUS
-
-    if (devicePixelRatio > 1){
-      backEndPlayers[socket.id].radius = 2 * RADIUS
-    }
-
+    
   })
 
   socket.on('disconnect', (reason) => {
@@ -77,6 +74,10 @@ io.on('connection', (socket) => {
   })
 
   socket.on('keydown', ({keycode, sequenceNumber}) =>{
+    const backEndPlayer = backEndPlayers[socket.id]
+
+    if ( !backEndPlayers[socket.id] ) return
+    
     backEndPlayers[socket.id].sequenceNumber = sequenceNumber
     switch(keycode){
     case 'KeyW':
@@ -92,9 +93,31 @@ io.on('connection', (socket) => {
       backEndPlayers[socket.id].x += SPEED
       break
   }
-  })
+    // const playerSides = {
+    //   left: backEndPlayer.x - backEndPlayer.radius,
+    //   right: backEndPlayer.x + backEndPlayer.radius,
+    //   top: backEndPlayer.y - backEndPlayer.radius,
+    //   bottom: backEndPlayer.y + backEndPlayer.radius
+    // }
 
-  //console.log(backEndPlayers)
+    const canvas = backEndPlayers[socket.id].canvas
+
+    if ((backEndPlayer.x - backEndPlayer.radius) < 0){
+      backEndPlayer.x = backEndPlayer.radius
+    }
+    else if ((backEndPlayer.x + backEndPlayer.radius) > canvas.width){
+      backEndPlayer.x = canvas.width - backEndPlayer.radius
+    }
+
+    // y bounds
+    if ((backEndPlayer.y - backEndPlayer.radius) < 0){
+      backEndPlayer.y = backEndPlayer.radius
+    }
+    else if ((backEndPlayer.y + backEndPlayer.radius) > canvas.height){
+      backEndPlayer.y = canvas.height - backEndPlayer.radius
+    }
+
+  })
 
 });
 
