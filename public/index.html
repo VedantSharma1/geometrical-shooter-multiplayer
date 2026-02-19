@@ -6,20 +6,28 @@
         -moz-osx-font-smoothing: grayscale;
         text-rendering: optimizeLegibility;
         margin: 0;
-        background: #94a3b8;
+        background: black;
       }
 
       input::placeholder {
         color: #94a3b8;
       }
       canvas{
-        width: 100%;
-        height: 100%;
+        /* width: 1024px;
+        height: 576px;
+        background-image: url('/image/webb-dark.png'); */
+        display:block;
+        width:100vw;
+        height:100vh;
+        background-image:url('/image/webb-dark.png');
+        background-repeat:repeat;
+        background-size:auto;
       }
     </style>
   </head>
-  <body>
-    <div
+  <body style="display: flex; align-items: center; justify-content: center;">
+    <div>
+      <div
       style="
         position: absolute;
         right: 2%;
@@ -86,6 +94,8 @@
           </div>
         </form>
       </div>
+    </div>
+    
 
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.10.2/gsap.min.js"
